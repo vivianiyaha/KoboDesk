@@ -1,0 +1,22 @@
+databases:
+  - name: kobodesk-db
+    databaseName: kobodesk
+    plan: basic-256mb   # the free tier database expires after 30 days; use a paid plan for real customers
+
+services:
+  - type: web
+    name: kobodesk
+    runtime: python
+    rootDir: backend
+    plan: starter       # free web services sleep when idle, which hurts a "works at closing time" product
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT --forwarded-allow-ips="*" --timeout 30
+    healthCheckPath: /health
+    envVars:
+      - { key: PYTHON_VERSION, value: 3.12.7 }
+      - { key: ENV, value: production }
+      - { key: DATABASE_URL, fromDatabase: { name: kobodesk-db, property: connectionString } }
+      - { key: JWT_SECRET, generateValue: true }
+      - { key: PAYSTACK_SECRET_KEY, sync: false }
+      - { key: FRONTEND_URL, sync: false }      # e.g. https://kobodesk.netlify.app (no trailing slash)
+      - { key: ALLOWED_ORIGINS, sync: false }   # same value as FRONTEND_URL; comma-separate extras
